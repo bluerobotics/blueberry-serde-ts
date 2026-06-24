@@ -13,6 +13,8 @@
  *     may not carry.
  */
 
+import { INVALID_BLOCK_INDEX } from './constants.js';
+
 export class BlueberryReader {
   private readonly view: DataView;
   private pos = 0;
@@ -251,7 +253,9 @@ export class BlueberryReader {
     const index = this.view.getUint16(this.pos, true);
     this.pos += 2;
 
-    if (index === 0) return '';
+    // A zero or INVALID_BLOCK_INDEX placeholder marks an empty string; there
+    // is no deferred block to dereference.
+    if (index === 0 || index === INVALID_BLOCK_INDEX) return '';
 
     const dataStart = this.messageStart + index;
     if (dataStart + 4 > this.data.length) {
@@ -286,6 +290,12 @@ export class BlueberryReader {
     const index = this.view.getUint16(this.pos, true);
     const _elemByteLen = this.view.getUint16(this.pos + 2, true);
     this.pos += 4;
+
+    // An INVALID_BLOCK_INDEX placeholder marks an empty sequence regardless of
+    // the element-byte-length field; there is no deferred block to dereference.
+    if (index === INVALID_BLOCK_INDEX) {
+      return new SequenceReader(this, 0, this.data.byteOffset, 0);
+    }
 
     if (index === 0 && _elemByteLen === 0) {
       return new SequenceReader(this, 0, this.data.byteOffset, 0);

@@ -23,3 +23,13 @@ export const PACKET_MAGIC: Uint8Array = new Uint8Array([0x42, 0x6c, 0x75, 0x65])
 
 /** Default Blueberry protocol port: 16962 (`0x4242`, `{'B', 'B'}`). */
 export const BLUEBERRY_PORT = 0x4242;
+
+/**
+ * Block-index sentinel for an empty or absent deferred string/sequence block.
+ *
+ * On the read side, a string/sequence whose inline block index equals this
+ * value represents an empty string / empty sequence rather than a real block
+ * offset to dereference. Mirrors `BlueberryBuffer.INVALID_INDEX` in the Java
+ * transcoder and `INVALID_BLOCK_INDEX` in `blueberry_serde.constants` (Python).
+ */
+export const INVALID_BLOCK_INDEX = 0xffff;
