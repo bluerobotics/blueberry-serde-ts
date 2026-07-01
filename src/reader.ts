@@ -251,7 +251,9 @@ export class BlueberryReader {
     const index = this.view.getUint16(this.pos, true);
     this.pos += 2;
 
-    if (index === 0) return '';
+    // 0 (zeroed header) and 0xFFFF (firmware INVALID_BLOCK_INDEX sentinel for
+    // an empty deferred block) both denote an empty string.
+    if (index === 0 || index === 0xffff) return '';
 
     const dataStart = this.messageStart + index;
     if (dataStart + 4 > this.data.length) {
@@ -287,7 +289,12 @@ export class BlueberryReader {
     const _elemByteLen = this.view.getUint16(this.pos + 2, true);
     this.pos += 4;
 
-    if (index === 0 && _elemByteLen === 0) {
+    // Firmware encodes an empty deferred block with INVALID_BLOCK_INDEX
+    // (0xFFFF) and may leave the element-byte-length field as stale bytes.
+    // Treat it — like a zeroed header — as a zero-element sequence rather than
+    // a real data-block offset (which would index far past the message end and
+    // throw). Mirrors the captured-frame regression in blueberry-studio.
+    if ((index === 0 && _elemByteLen === 0) || index === 0xffff) {
       return new SequenceReader(this, 0, this.data.byteOffset, 0);
     }
 
