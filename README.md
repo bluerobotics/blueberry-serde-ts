@@ -29,6 +29,8 @@ TypeScript implementation of the [Blueberry](https://github.com/bluerobotics/blu
 └─────────────────────────────────────────────────┘
 ```
 
+`deserializePacket` currently accepts a CRC field of `0xFFFF` (CRC-16-CCITT init / firmware TX sentinel) with a warning, so hosts can decode devices that never write a real CRC. Real non-sentinel mismatches are still rejected. Remove this skip once firmware TX CRC is fixed — [blueberry-studio#75](https://github.com/bluerobotics/blueberry-studio/issues/75).
+
 ## Message header (8 bytes)
 
 ```
