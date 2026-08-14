@@ -14,8 +14,7 @@ import type { BlueberryReader } from '../src/index.js';
 
 const decodeString = (b: Uint8Array): string => deserialize(b, (r) => r.readString());
 
-const decodeU16Sequence = (b: Uint8Array): number[] =>
-  deserialize(b, (r) => readU16Sequence(r));
+const decodeU16Sequence = (b: Uint8Array): number[] => deserialize(b, (r) => readU16Sequence(r));
 
 function readU16Sequence(r: BlueberryReader): number[] {
   const seq = r.beginSequence();
