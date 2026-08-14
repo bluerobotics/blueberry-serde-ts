@@ -1,6 +1,59 @@
 # blueberry-serde-ts
 
-TypeScript implementation of the [Blueberry](https://github.com/bluerobotics/blueberry-compiler) binary wire format. Companion library to [`blueberry-serde`](https://github.com/patrickelectric/blueberry-serde) (Rust) and [`blueberry-serde-python`](https://github.com/patrickelectric/blueberry-serde-python) (Python).
+TypeScript implementation of the Blueberry binary wire format. Companion library to [`blueberry-serde`](https://github.com/patrickelectric/blueberry-serde) (Rust) and [`blueberry-serde-python`](https://github.com/patrickelectric/blueberry-serde-python) (Python).
+
+This repo vendors the protocol IDL (`blueberry-dictionary`) and TypeScript compiler (`blueberry-compiler-eldin`) as git submodules, and **commits** the generated message codecs next to the hand-written runtime.
+
+## Layout
+
+| Path | What it is |
+|------|------------|
+| `src/` (`codec.ts`, `reader.ts`, `writer.ts`, `header.ts`, `crc.ts`, …) | Hand-written wire-format runtime |
+| `src/runtime.ts` | Runtime barrel (generated codecs import this, not the package root) |
+| `src/generated/` | Eldin TypeScript output — committed; do not edit by hand |
+| `src/index.ts` | Re-exports runtime + generated codecs |
+| `blueberry-dictionary/` | Git submodule — IDL source |
+| `blueberry-compiler-eldin/` | Git submodule — compiler used to regenerate codecs (developer/CI input) |
+
+Blueberry Studio consumes this package via `file:./protocol/blueberry-serde-ts`. App developers do not need the Eldin submodule or a Rust toolchain; those are only for regenerating codecs.
+
+## Clone
+
+```sh
+git clone --recurse-submodules https://github.com/bluerobotics/blueberry-serde-ts.git
+```
+
+If you already cloned without submodules:
+
+```sh
+git submodule update --init --recursive
+```
+
+`blueberry-compiler-eldin` is a Rust tree. Skip it if you are only consuming committed codecs:
+
+```sh
+git submodule update --init blueberry-dictionary
+```
+
+## Installation
+
+```sh
+npm install github:eldinmiller/blueberry-serde-ts
+```
+
+Or pin to a tagged release:
+
+```sh
+npm install github:eldinmiller/blueberry-serde-ts#v0.1.0
+```
+
+Package exports:
+
+| Import | Contents |
+|--------|----------|
+| `blueberry-serde-ts` | Runtime + generated message codecs |
+| `blueberry-serde-ts/runtime` | Hand-written runtime only |
+| `blueberry-serde-ts/messages` | Generated message classes and `decodeMessage` |
 
 ## Wire format
 
@@ -44,18 +97,6 @@ Word 1 (byte  7):    uint8  tbd           (reserved, set to 0)
 
 Operates in request-response mode on UDP port `16962` (`0x4242`, `{'B', 'B'}`). One endpoint controls the bus and initiates requests; all other devices wait for requests before responding. An empty message (header only) requests a populated response of the same type from the target device.
 
-## Installation
-
-```sh
-npm install github:eldinmiller/blueberry-serde-ts
-```
-
-Or pin to a tagged release:
-
-```sh
-npm install github:eldinmiller/blueberry-serde-ts#v0.1.0
-```
-
 ## Usage
 
 ```typescript
@@ -95,7 +136,11 @@ const { header, fields } = deserializeMessage<StatusFields>(bytes, (r) => ({
 console.log(header, fields);
 ```
 
-For typical use, consumers will not write encoders/decoders by hand — they will be emitted by the [`blueberry-compiler` TypeScript target](https://github.com/bluerobotics/blueberry-compiler).
+Generated message classes (from `blueberry-serde-ts/messages` or the package root):
+
+```typescript
+import { decodeMessage, WhosThereMessage } from 'blueberry-serde-ts/messages';
+```
 
 ## Public API
 
@@ -114,6 +159,22 @@ For typical use, consumers will not write encoders/decoders by hand — they wil
 | `crc16Ccitt(bytes)` | CRC-16-CCITT (init `0xFFFF`, poly `0x1021`). |
 | `BLUEBERRY_PORT`, `PACKET_MAGIC`, `HEADER_SIZE`, `PACKET_HEADER_SIZE`, `HEADER_FIELD_COUNT` | Constants. |
 
+## Regenerating codecs
+
+Requires Rust (`cargo` on PATH) and both nested submodules.
+
+Bump the dictionary pin, regenerate, and commit the result:
+
+```sh
+git -C blueberry-dictionary fetch
+git -C blueberry-dictionary checkout origin/main
+npm run codegen
+npm test
+git add blueberry-dictionary src/generated
+```
+
+`npm run codegen:check` regenerates and fails if `src/generated` drifted.
+
 ## Development
 
 ```sh
@@ -122,6 +183,7 @@ npm run test         # vitest
 npm run typecheck    # tsc --noEmit
 npm run lint         # prettier --check
 npm run build        # tsc → dist/
+npm run codegen      # Eldin → src/generated (needs Rust + nested submodules)
 ```
 
 ## License
