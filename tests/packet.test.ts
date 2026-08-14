@@ -4,11 +4,10 @@
  * Ported from `blueberry-serde-python/tests/test_packet.py`.
  */
 
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 
 import {
   BLUEBERRY_PORT,
-  PACKET_CRC_UNINITIALIZED,
   PACKET_HEADER_SIZE,
   PACKET_MAGIC,
   crc16Ccitt,
@@ -93,7 +92,7 @@ describe('packet framing', () => {
     expect(() => deserializePacket(pkt)).toThrow(/CRC/);
   });
 
-  test('wrong non-sentinel CRC field is rejected', () => {
+  test('wrong CRC field is rejected', () => {
     const pkt = serializePacket([encodeSimple(1)]);
     const view = new DataView(pkt.buffer, pkt.byteOffset, pkt.byteLength);
     const original = view.getUint16(6, true);
@@ -102,23 +101,12 @@ describe('packet framing', () => {
     expect(() => deserializePacket(pkt)).toThrow(/CRC/);
   });
 
-  test('uninitialized 0xFFFF CRC is accepted with a warning', () => {
-    const msg = encodeSimple(42);
-    const pkt = serializePacket([msg]);
+  test('0xFFFF CRC field is rejected when it is not the computed CRC', () => {
+    const pkt = serializePacket([encodeSimple(42)]);
     const view = new DataView(pkt.buffer, pkt.byteOffset, pkt.byteLength);
-    expect(view.getUint16(6, true)).not.toBe(PACKET_CRC_UNINITIALIZED);
-    view.setUint16(6, PACKET_CRC_UNINITIALIZED, true);
-
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      const { messages } = deserializePacket(pkt);
-      expect(messages.length).toBe(1);
-      expect(decodeSimple(messages[0]!).fields.value).toBe(42);
-      expect(warn).toHaveBeenCalled();
-      expect(String(warn.mock.calls[0]?.[0])).toMatch(/0xFFFF/);
-    } finally {
-      warn.mockRestore();
-    }
+    expect(view.getUint16(6, true)).not.toBe(0xffff);
+    view.setUint16(6, 0xffff, true);
+    expect(() => deserializePacket(pkt)).toThrow(/CRC/);
   });
 
   test('bad magic is rejected', () => {

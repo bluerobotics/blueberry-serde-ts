@@ -23,16 +23,3 @@ export const PACKET_MAGIC: Uint8Array = new Uint8Array([0x42, 0x6c, 0x75, 0x65])
 
 /** Default Blueberry protocol port: 16962 (`0x4242`, `{'B', 'B'}`). */
 export const BLUEBERRY_PORT = 0x4242;
-
-/**
- * CRC-16-CCITT initial value, also the firmware TX sentinel.
- *
- * Firmware currently leaves the packet CRC field at this value instead of
- * writing the computed CRC (`finishBbPacket` / STM32 CRC peripheral). Device
- * UDP RX does not validate CRC. `deserializePacket` skips a mismatch throw
- * when the header CRC is this sentinel so hosts can still decode replies.
- *
- * Temporary compatibility wart — remove the skip once firmware TX CRC is
- * fixed. See bluerobotics/blueberry-studio#75.
- */
-export const PACKET_CRC_UNINITIALIZED = 0xffff;
