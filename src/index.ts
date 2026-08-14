@@ -1,37 +1,10 @@
 /**
  * Public surface of `blueberry-serde-ts`.
  *
- * This module re-exports every symbol intended for consumers of the runtime,
- * including generated TypeScript code emitted by `blueberry-compiler`.
+ * Re-exports the hand-written wire-format runtime and the generated message
+ * codecs. Existing `serializePacket` imports keep working; message classes
+ * are also available from `blueberry-serde-ts/messages`.
  */
 
-export {
-  BLUEBERRY_PORT,
-  HEADER_FIELD_COUNT,
-  HEADER_SIZE,
-  INVALID_BLOCK_INDEX,
-  PACKET_HEADER_SIZE,
-  PACKET_MAGIC,
-} from './constants.js';
-
-export { crc16Ccitt } from './crc.js';
-
-export { MessageHeader, PacketHeader } from './header.js';
-
-export { BlueberryReader, SequenceReader } from './reader.js';
-
-export { BlueberryWriter, SequenceWriter } from './writer.js';
-
-export {
-  type Decoder,
-  type Encoder,
-  deserialize,
-  deserializeMessage,
-  deserializePacket,
-  emptyMessage,
-  serialize,
-  serializeMessage,
-  serializePacket,
-} from './codec.js';
-
-export type { OptionalOrdinal } from './types.js';
+export * from './runtime.js';
+export * from './generated/index.js';

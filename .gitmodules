@@ -1,0 +1,7 @@
+[submodule "blueberry-dictionary"]
+	path = blueberry-dictionary
+	url = https://github.com/bluerobotics/blueberry-dictionary.git
+[submodule "blueberry-compiler-eldin"]
+	path = blueberry-compiler-eldin
+	url = https://github.com/eldinmiller/blueberry-compiler-eldin.git
+	branch = typescript-target

@@ -29,7 +29,20 @@ export const BLUEBERRY_PORT = 0x4242;
  *
  * On the read side, a string/sequence whose inline block index equals this
  * value represents an empty string / empty sequence rather than a real block
- * offset to dereference. Mirrors `BlueberryBuffer.INVALID_INDEX` in the Java
- * transcoder and `INVALID_BLOCK_INDEX` in `blueberry_serde.constants` (Python).
+ * offset to dereference. Matches firmware `INVALID_BLOCK_INDEX` and
+ * `BlueberryBuffer.INVALID_INDEX` in the Java transcoder.
  */
 export const INVALID_BLOCK_INDEX = 0xffff;
+
+/**
+ * CRC-16-CCITT initial value, also the firmware TX sentinel.
+ *
+ * Firmware currently leaves the packet CRC field at this value instead of
+ * writing the computed CRC (`finishBbPacket` / STM32 CRC peripheral). Device
+ * UDP RX does not validate CRC. `deserializePacket` skips a mismatch throw
+ * when the header CRC is this sentinel so hosts can still decode replies.
+ *
+ * Temporary compatibility wart — remove the skip once firmware TX CRC is
+ * fixed. See bluerobotics/blueberry-studio#75.
+ */
+export const PACKET_CRC_UNINITIALIZED = 0xffff;
