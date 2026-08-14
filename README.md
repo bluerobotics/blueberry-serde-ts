@@ -157,7 +157,7 @@ import { decodeMessage, WhosThereMessage } from 'blueberry-serde-ts/messages';
 | `BlueberryReader` | Alignment-aware decoder (used by generated code). |
 | `MessageHeader`, `PacketHeader` | Header encode/decode primitives. |
 | `crc16Ccitt(bytes)` | CRC-16-CCITT (init `0xFFFF`, poly `0x1021`). |
-| `BLUEBERRY_PORT`, `PACKET_MAGIC`, `HEADER_SIZE`, `PACKET_HEADER_SIZE`, `HEADER_FIELD_COUNT` | Constants. |
+| `BLUEBERRY_PORT`, `PACKET_MAGIC`, `HEADER_SIZE`, `PACKET_HEADER_SIZE`, `HEADER_FIELD_COUNT`, `INVALID_BLOCK_INDEX` | Constants. |
 
 ## Regenerating codecs
 
