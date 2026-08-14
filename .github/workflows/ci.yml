@@ -30,6 +30,32 @@ jobs:
       - name: Build
         run: npm run build
 
+  codegen-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            blueberry-compiler-eldin/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('blueberry-compiler-eldin/Cargo.lock') }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Regenerated codecs match src/generated
+        run: npm run codegen:check
+
   release:
     name: Tagged release
     runs-on: ubuntu-latest

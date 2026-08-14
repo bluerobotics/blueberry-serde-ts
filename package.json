@@ -9,6 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "default": "./dist/runtime.js"
+    },
+    "./messages": {
+      "types": "./dist/generated/index.d.ts",
+      "default": "./dist/generated/index.js"
     }
   },
   "files": [
@@ -24,7 +32,9 @@
     "test:watch": "vitest",
     "lint": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"examples/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"examples/**/*.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "codegen": "node scripts/codegen.mjs",
+    "codegen:check": "node scripts/codegen.mjs && git diff --exit-code -- src/generated"
   },
   "engines": {
     "node": ">=20"
