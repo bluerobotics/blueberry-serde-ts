@@ -1020,6 +1020,8 @@ export enum AScanType {
   RAW_RF = 1,
   IQ_DEMOD = 2,
   RECTIFIER_DEMOD = 3,
+  MIN_MAX = 4,
+  RAW_CURRENT = 5,
 }
 
 export const SONAR_A_SCAN_TOPIC = 'blueberry/devices/{device_type}/{nid}/sonar-a-scan';
@@ -1405,6 +1407,7 @@ export enum HwType {
   GIGABOARD = 5,
   BLUE_BRIDGE = 6,
   POGOBRAIN = 7,
+  PING_DEV_KIT = 8,
 }
 
 export enum McuType {
@@ -1422,6 +1425,8 @@ export interface VersionFields {
   hardwareRev: number;
   mcuType: McuType;
   hardwareType: HwType;
+  gitHash: number;
+  gitDirty: boolean;
 }
 
 export class VersionMessage {
@@ -1446,6 +1451,8 @@ export class VersionMessage {
         w.writeU8(f.hardwareRev);
         w.writeU8(f.mcuType as number);
         w.writeU16(f.hardwareType as number);
+        w.writeU32(f.gitHash);
+        w.writeBool(f.gitDirty);
       },
     );
   }
@@ -1456,6 +1463,8 @@ export class VersionMessage {
       hardwareRev: r.readU8(),
       mcuType: r.readU8() as McuType,
       hardwareType: r.readU16() as HwType,
+      gitHash: r.readU32(),
+      gitDirty: r.readBool(),
     }));
   }
 }
