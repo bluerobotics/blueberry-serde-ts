@@ -148,19 +148,63 @@ export function serializePacket(messages: ReadonlyArray<Uint8Array>): Uint8Array
   return result;
 }
 
+function verifyPacketCrc(pktHeader: PacketHeader, messageData: Uint8Array): void {
+  const expectedCrc = crc16Ccitt(messageData);
+  if (pktHeader.crc === expectedCrc) return;
+
+  // Firmware TX currently leaves CRC at CRC-16-CCITT init (0xFFFF) instead of
+  // writing the computed value. Device UDP RX does not validate CRC, so
+  // probes succeed and replies still carry the sentinel. Skip the mismatch
+  // throw for that sentinel only so hosts can decode IdMessage replies.
+  // Real (non-sentinel) CRC mismatches are still rejected.
+  // Temporary: remove this skip once firmware TX CRC is fixed.
+  // See bluerobotics/blueberry-studio#75.
+  if (pktHeader.crc === PACKET_CRC_UNINITIALIZED) {
+    console.warn(
+      `deserializePacket: packet CRC is 0xFFFF (uninitialized sentinel); skipping CRC check (expected 0x${expectedCrc.toString(16)}). Firmware TX currently leaves CRC at init; UDP RX on device does not validate. See bluerobotics/blueberry-studio#75.`,
+    );
+    return;
+  }
+  throw new Error(
+    `deserializePacket: CRC mismatch (expected 0x${expectedCrc.toString(16)}, got 0x${pktHeader.crc.toString(16)})`,
+  );
+}
+
 /**
- * Parse a Blueberry packet. Validates magic, length, and CRC, then splits
- * the body into per-message byte slices (each suitable for `deserializeMessage`).
+ * How {@link deserializePacket} treats the packet-header CRC field.
  *
- * If the header CRC is {@link PACKET_CRC_UNINITIALIZED} (`0xFFFF`) and does
- * not match the computed CRC, the mismatch is skipped with a warning rather
- * than thrown — firmware TX currently leaves CRC at init. See
+ * - `'verify'` (default): compute the CRC over the message data and compare.
+ * - `'ignore'`: do not read the CRC field at all — no check, no mismatch
+ *   error, no sentinel warning. For links that already guarantee frame
+ *   integrity (e.g. Ethernet's link-level CRC under UDP), where the packet
+ *   CRC is redundant.
+ */
+export type PacketCrcPolicy = 'verify' | 'ignore';
+
+/** Options for {@link deserializePacket}. */
+export interface DeserializePacketOptions {
+  /** CRC handling; defaults to `'verify'`. */
+  crc?: PacketCrcPolicy;
+}
+
+/**
+ * Parse a Blueberry packet. Validates magic and length, then (unless
+ * `options.crc` is `'ignore'`) the CRC, and splits the body into per-message
+ * byte slices (each suitable for `deserializeMessage`).
+ *
+ * When verifying, if the header CRC is {@link PACKET_CRC_UNINITIALIZED}
+ * (`0xFFFF`) and does not match the computed CRC, the mismatch is skipped with
+ * a warning rather than thrown — firmware TX currently leaves CRC at init. See
  * bluerobotics/blueberry-studio#75. Real non-sentinel mismatches still throw.
  */
-export function deserializePacket(bytes: Uint8Array): {
+export function deserializePacket(
+  bytes: Uint8Array,
+  options: DeserializePacketOptions = {},
+): {
   header: PacketHeader;
   messages: Uint8Array[];
 } {
+  const { crc: crcPolicy = 'verify' } = options;
   const pktHeader = PacketHeader.decode(bytes);
   if (pktHeader === null) {
     throw new Error('deserializePacket: invalid packet header (bad magic or too short)');
@@ -172,25 +216,8 @@ export function deserializePacket(bytes: Uint8Array): {
     );
   }
 
-  const messageData = bytes.subarray(PACKET_HEADER_SIZE, totalBytes);
-  const expectedCrc = crc16Ccitt(messageData);
-  if (pktHeader.crc !== expectedCrc) {
-    // Firmware TX currently leaves CRC at CRC-16-CCITT init (0xFFFF) instead of
-    // writing the computed value. Device UDP RX does not validate CRC, so
-    // probes succeed and replies still carry the sentinel. Skip the mismatch
-    // throw for that sentinel only so hosts can decode IdMessage replies.
-    // Real (non-sentinel) CRC mismatches are still rejected.
-    // Temporary: remove this skip once firmware TX CRC is fixed.
-    // See bluerobotics/blueberry-studio#75.
-    if (pktHeader.crc === PACKET_CRC_UNINITIALIZED) {
-      console.warn(
-        `deserializePacket: packet CRC is 0xFFFF (uninitialized sentinel); skipping CRC check (expected 0x${expectedCrc.toString(16)}). Firmware TX currently leaves CRC at init; UDP RX on device does not validate. See bluerobotics/blueberry-studio#75.`,
-      );
-    } else {
-      throw new Error(
-        `deserializePacket: CRC mismatch (expected 0x${expectedCrc.toString(16)}, got 0x${pktHeader.crc.toString(16)})`,
-      );
-    }
+  if (crcPolicy === 'verify') {
+    verifyPacketCrc(pktHeader, bytes.subarray(PACKET_HEADER_SIZE, totalBytes));
   }
 
   const messages: Uint8Array[] = [];

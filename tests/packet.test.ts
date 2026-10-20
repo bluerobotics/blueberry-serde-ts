@@ -121,6 +121,56 @@ describe('packet framing', () => {
     }
   });
 
+  test("crc: 'verify' behaves like the default (wrong CRC rejected)", () => {
+    const pkt = serializePacket([encodeSimple(1)]);
+    const view = new DataView(pkt.buffer, pkt.byteOffset, pkt.byteLength);
+    const original = view.getUint16(6, true);
+    view.setUint16(6, original === 0x0001 ? 0x0002 : 0x0001, true);
+    expect(() => deserializePacket(pkt, { crc: 'verify' })).toThrow(/CRC/);
+  });
+
+  describe("crc: 'ignore'", () => {
+    test('accepts a wrong non-sentinel CRC without throwing or warning', () => {
+      const pkt = serializePacket([encodeSimple(7)]);
+      const view = new DataView(pkt.buffer, pkt.byteOffset, pkt.byteLength);
+      const original = view.getUint16(6, true);
+      view.setUint16(6, original === 0x0001 ? 0x0002 : 0x0001, true);
+
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const { messages } = deserializePacket(pkt, { crc: 'ignore' });
+        expect(decodeSimple(messages[0]!).fields.value).toBe(7);
+        expect(warn).not.toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    test('accepts the 0xFFFF sentinel without a warning', () => {
+      const pkt = serializePacket([encodeSimple(42)]);
+      const view = new DataView(pkt.buffer, pkt.byteOffset, pkt.byteLength);
+      view.setUint16(6, PACKET_CRC_UNINITIALIZED, true);
+
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const { messages } = deserializePacket(pkt, { crc: 'ignore' });
+        expect(decodeSimple(messages[0]!).fields.value).toBe(42);
+        expect(warn).not.toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    test('still rejects bad magic and truncated packets', () => {
+      const bad = serializePacket([encodeSimple(1)]);
+      bad[0] = 0x00;
+      expect(() => deserializePacket(bad, { crc: 'ignore' })).toThrow(/header/);
+
+      const truncated = serializePacket([encodeSimple(1)]).subarray(0, PACKET_HEADER_SIZE + 1);
+      expect(() => deserializePacket(truncated, { crc: 'ignore' })).toThrow(/EOF/);
+    });
+  });
+
   test('bad magic is rejected', () => {
     const pkt = serializePacket([encodeSimple(1)]);
     pkt[0] = 0x00;

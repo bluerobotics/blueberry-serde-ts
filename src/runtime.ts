@@ -25,7 +25,9 @@ export { BlueberryWriter, SequenceWriter } from './writer.js';
 
 export {
   type Decoder,
+  type DeserializePacketOptions,
   type Encoder,
+  type PacketCrcPolicy,
   deserialize,
   deserializeMessage,
   deserializePacket,
