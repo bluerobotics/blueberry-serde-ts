@@ -82,7 +82,7 @@ Package exports:
 └─────────────────────────────────────────────────┘
 ```
 
-`deserializePacket` currently accepts a CRC field of `0xFFFF` (CRC-16-CCITT init / firmware TX sentinel) with a warning, so hosts can decode devices that never write a real CRC. Real non-sentinel mismatches are still rejected. Remove this skip once firmware TX CRC is fixed — [blueberry-studio#75](https://github.com/bluerobotics/blueberry-studio/issues/75).
+`deserializePacket` currently accepts a CRC field of `0xFFFF` (CRC-16-CCITT init / firmware TX sentinel) with a warning, so hosts can decode devices that never write a real CRC. Real non-sentinel mismatches are still rejected. Remove this skip once firmware TX CRC is fixed — [blueberry-studio#75](https://github.com/bluerobotics/blueberry-studio/issues/75). Pass `{ crc: 'ignore' }` to skip CRC handling entirely (no check, no warning) on links that already guarantee frame integrity, e.g. UDP over Ethernet.
 
 ## Message header (8 bytes)
 
@@ -151,7 +151,7 @@ import { decodeMessage, WhosThereMessage } from 'blueberry-serde-ts/messages';
 | `serializeMessage<T>(fields, moduleKey, messageKey, encoder)` | Serialize a body with an 8-byte message header. |
 | `deserializeMessage<T>(bytes, decoder)` | Parse a message header and decode the body. |
 | `serializePacket(messages)` | Wrap one or more messages in a packet header (magic + length + CRC). |
-| `deserializePacket(bytes)` | Validate magic + CRC and split into message slices. |
+| `deserializePacket(bytes, { crc? })` | Validate magic + CRC (`crc: 'ignore'` skips the CRC) and split into message slices. |
 | `emptyMessage(moduleKey, messageKey)` | Header-only message for request-response. |
 | `BlueberryWriter` | Alignment-aware encoder (used by generated code). |
 | `BlueberryReader` | Alignment-aware decoder (used by generated code). |
